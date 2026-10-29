@@ -39,6 +39,20 @@ test('同一骑士不能同时接两个任务，撤回后可以重新派遣', ()
   assert.equal(assignKnight(state,'grain','lin').ok,false);
 });
 
+test('转盘六格与引擎的成功率、实际投掷及回溯重现一致', () => {
+ const state=createGame(123); chooseDay(state,['investigate','escort']);
+ assignKnight(state,'fog','anwen'); assignKnight(state,'grain','beilu');
+ const plans=Object.fromEntries(state.quests.map(q=>[q.id,estimateQuest(state,q.id,q.assignedKnightId)]));
+ const copy=structuredClone(state), result=resolveBoard(copy);
+ for(const item of result.results){
+  const plan=plans[item.questId], grades=Array.from({length:6},(_,i)=>plan.power-plan.difficulty+i-2);
+  assert.equal(plan.chance,Math.round(grades.filter(g=>g>=0).length/6*100));
+  assert.equal(item.outcome,grades[item.roll]>=3?'critical':grades[item.roll]>=0?'success':'failure');
+ }
+ assert.equal(state.phase,'board'); assert.deepEqual(resolveBoard(state).results,result.results);
+ assert.equal(resolveBoard(state).ok,false);
+});
+
 test('强制高低能力场景能产生成功与失败并改变对应资源', () => {
   const state = createGame(2); chooseDay(state,['investigate','escort']);
   state.knights.find(k => k.id === 'anwen').skills.agility = 30;

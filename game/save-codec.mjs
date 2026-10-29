@@ -13,7 +13,7 @@ const endings={
  alliance:{title:'圆桌之约',text:'各方代表终于坐到同一张桌前。盟约只是开端，守约将是下一场考验。'},
  renewal:{title:'灯火重新亮起',text:'十四日的风雨后，街道逐渐恢复生机。塔楼的灯火还将照亮更远的道路。'}
 };
-const resultFields=['questId','knightId','outcome','delta'];
+const resultFields=['questId','knightId','outcome','delta','roll'];
 function packCore(state){const {knights,quests:taskList,history,results,ending,...other}=state;return {...clone(other),ending:ending?.id||null,results:results.map(r=>pick(r,resultFields)),knights:knights.map(k=>pick(k,knightFields)),quests:taskList.map(q=>pick(q,questFields))}}
 function restoreResult(r,state){
  const quest=state.quests.find(q=>q.id===r.questId), knight=state.knights.find(k=>k.id===r.knightId),name=knight?.name||'';
@@ -23,7 +23,7 @@ function restoreResult(r,state){
  else if(r.outcome==='expired')text=quest?.startedDay!=null?'任务在期限内未能完成。':'任务超过期限，未能派遣。';
  else if(r.outcome==='in_progress')text=`仍在执行，预计还需 ${quest.remaining} 天。`;
  else if(r.outcome==='info')text='今日没有完成或过期的任务。';else throw new Error('unknown result');
- return {questId:r.questId,title:quest?.title||'圆桌记录',knightId:r.knightId,knightName:name,outcome:r.outcome,text,delta:clone(r.delta)};
+ return {questId:r.questId,title:quest?.title||'圆桌记录',knightId:r.knightId,knightName:name,outcome:r.outcome,...(Number.isInteger(r.roll)?{roll:r.roll}:{}),text,delta:clone(r.delta)};
 }
 function unpackCore(state){
  if(!state||!Array.isArray(state.knights)||!Array.isArray(state.quests)||!Number.isInteger(state.day))throw new Error('invalid save');

@@ -3,5 +3,5 @@
   "version":"1.0.0",
   "private":true,
   "type":"module",
-  "scripts":{"test":"node --test tests/*.test.mjs","check":"node --check game/app.mjs && node --check game/opening.mjs && node --check game/engine.mjs && node --check game/content.mjs && node --check game/save.mjs && node --check game/save-codec.mjs"}
+  "scripts":{"test":"node --test tests/*.test.mjs","check":"node --check game/app.mjs && node --check game/opening.mjs && node --check game/engine.mjs && node --check game/content.mjs && node --check game/save.mjs && node --check game/save-codec.mjs && node --check game/wheel.mjs"}
 }

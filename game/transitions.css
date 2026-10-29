@@ -3,3 +3,10 @@
 @keyframes visitor-exit{from{opacity:1}to{opacity:0}}
 @keyframes visitor-enter{from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.visitor-exit,.visitor-enter{animation:none}}
+/* Keep each source atlas cell's native proportions; do not stretch the figure. */
+.character.visitor-portrait{width:auto;height:70%;aspect-ratio:512 / 341}
+.character.visitor-portrait-tall{aspect-ratio:512 / 388}
+.character.advisor-portrait{width:auto;height:70%;aspect-ratio:1290 / 1217;background-size:contain;background-position:center bottom}
+@media(max-width:700px) and (orientation:portrait){
+ .character.visitor-portrait,.character.advisor-portrait{width:min(96%, 70vh);height:auto;bottom:20%}
+}

@@ -2,9 +2,10 @@ import * as engine from './engine.mjs';
 import {RESOURCE_NAMES,SKILL_NAMES,ROOMS,ITEMS} from './content.mjs';
 import {initializeSave,saveGame} from './save.mjs';
 import {startOpening} from './opening.mjs';
+import {showQuestWheels} from './wheel.mjs';
 
 const app=document.querySelector('#app');
-let game=null, screen='home', modal=null, towerTab='rooms', selectedQuest=null, selectedKnight=null, dialogueKnight=null, choicesOpen=false, saved=null, saveInfo='正在连接存档…', toast='', toastTimer, audienceTransition=false;
+let game=null, screen='home', modal=null, towerTab='rooms', selectedQuest=null, selectedKnight=null, dialogueKnight=null, choicesOpen=false, saved=null, saveInfo='正在连接存档…', toast='', toastTimer, audienceTransition=false, wheelActive=false;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const portraits={anwen:0,beilu:1,mira:2,lin:3,yewu:4};
 const visitors=[
@@ -20,15 +21,16 @@ function portraitStyle(sheet,index,columns,rows){
 const avatar=(id,klass='avatar',pose=0)=>`<div class="${klass}" style="${portraitStyle('characters-knights',portraits[id]+pose*5,5,2)}"></div>`;
 function visitor(name,alternate=false){
  if(speakerKnights[name])return avatar(speakerKnights[name],'character',alternate?0:1);
+ if(name==='塔楼顾问')return `<div class="character advisor-portrait" style="background-image:url('./assets/arlin.png')"></div>`;
  const sheet=visitors.findIndex(group=>group.includes(name));
  const index=sheet<0?visitors[1].indexOf('塔楼顾问'):visitors[sheet].indexOf(name);
- const asset=`visitors-facing-${sheet<0?2:sheet+1}${alternate?'-alt':''}`;
+ const asset=`visitors-cutout-${sheet<0?2:sheet+1}${alternate?'-alt':''}`;
  // 第三张访客原图只排了两行，底部留白不属于人物格位。
- const style=sheet===2?`background-image:url('./assets/${asset}.png');background-size:300% ${index<3?'270.9':'257.3'}%;background-position:${index%3*50}% ${index<3?'0':'60.38'}%`:portraitStyle(asset,index,3,3);
- return `<div class="character" style="${style}"></div>`;
+ const rowTop=alternate?384:380, cellHeight=index<3?rowTop:776-rowTop;
+ const style=sheet===2?`background-image:url('./assets/${asset}.png');background-size:300% ${1024/cellHeight*100}%;background-position:${index%3*50}% ${index<3?0:rowTop/(1024-cellHeight)*100}%;aspect-ratio:512 / ${cellHeight}`:portraitStyle(asset,index,3,3);
+ return `<div class="character visitor-portrait${sheet===2?' visitor-portrait-tall':''}" style="${style}"></div>`;
 }
 const uiIcon=index=>`<span class="ui-icon" aria-hidden="true" style="background-position:${(index%4)*100/3}% ${Math.floor(index/4)*50}%"></span>`;
-const resourceIcons={people:0,nobles:1,merchants:2,scholars:3,mystics:4,treasury:5};
 // Decorate visible resource names after rendering, leaving text and accessible labels intact.
 function decorateResources(root){
  const names=[...Object.entries(RESOURCE_NAMES),...['iron','herbs','seal'].map(id=>[id,ITEMS[id].name])], pattern=new RegExp(`(${names.map(([,name])=>name).join('|')})`,'g');
@@ -46,7 +48,7 @@ const costText=cost=>Object.entries(cost).map(([k,v])=>`${RESOURCE_NAMES[k]||ITE
 function notify(message){toast=message;clearTimeout(toastTimer);render();toastTimer=setTimeout(()=>{toast='';render()},2800)}
 function hud(){
  const info={people:'民众的支持；影响王国结局。',nobles:'贵族的支持；影响王国结局。',merchants:'商会的支持；影响建设与结局。',scholars:'学者的支持；影响建设与结局。',mystics:'秘仪师的支持；影响建设与结局。',treasury:'可用于决策、建设与制作。'};
- return `<div class="hud"><div class="hud-left"><div class="hud-day">第 <b>${game.day}</b> 日 <span class="top-title">/ 14</span></div><div class="resource-group">${Object.entries(game.resources).map(([k,v])=>`<div class="resource ${k==='treasury'?'gold':''}" tabindex="0" aria-label="${RESOURCE_NAMES[k]} ${v}。${info[k]}"><span class="resource-symbol resource-${k}">${uiIcon(resourceIcons[k])}</span><span>${v}</span><span class="resource-tip" role="tooltip"><strong>${RESOURCE_NAMES[k]}</strong><small>${info[k]}</small></span></div>`).join('')}</div></div><div class="hud-right">${[['tower',6,'塔楼与骑士'],['time',7,'时间回溯'],['journal',8,'见闻手记'],['save',9,'保存进度'],['help',10,'玩法说明']].map(([a,i,t])=>`<button class="icon-button" data-action="${a}" title="${t}" aria-label="${t}">${uiIcon(i)}</button>`).join('')}</div></div>`
+ return `<div class="hud"><div class="hud-left"><div class="hud-day">第 <b>${game.day}</b> 日 <span class="top-title">/ 14</span></div><div class="resource-group">${Object.entries(game.resources).map(([k,v])=>`<div class="resource ${k==='treasury'?'gold':''}" tabindex="0" aria-label="${RESOURCE_NAMES[k]} ${v}。${info[k]}"><span class="resource-symbol resource-${k}"><span class="inline-resource-icon resource-icon-${k}" aria-hidden="true"></span></span><span>${v}</span><span class="resource-tip" role="tooltip"><strong>${RESOURCE_NAMES[k]}</strong><small>${info[k]}</small></span></div>`).join('')}</div></div><div class="hud-right">${[['map',8,'王国地图'],['tower',6,'塔楼与骑士'],['time',7,'时间回溯'],['journal',8,'见闻手记'],['save',9,'保存进度'],['help',10,'玩法说明']].map(([a,i,t])=>`<button class="icon-button" data-action="${a}" title="${t}" aria-label="${t}">${uiIcon(i)}</button>`).join('')}</div></div>`
 }
 function home(){return `<div class="home-vignette"></div><div class="home-content"><div class="home-kicker">一座塔 · 一场漫长的抉择</div><h1>暮塔之主</h1><div class="ornament">${uiIcon(11)}</div><p class="home-sub">接见来访者，回应他们的请求。<br>召集骑士，决定王国的未来。</p><div class="home-buttons">${btn('new','开始新的旅程','','ribbon-button')}${saved?btn('continue','继续旅程','','ribbon-button'):''}${btn('help','如何游玩','','ribbon-button')}</div><p class="home-meta">十四日章节<br>${esc(saveInfo)}</p></div>`}
 function audience(){const event=engine.getAudience(game);return `<div class="goal">${event?`接见来访者 <strong>${game.audienceIndex+1} / 2</strong>`:'今日接见已结束'}</div>${visitor(event?.speaker||'塔楼顾问',choicesOpen)}<div class="name-banner"><small>${event?esc(event.title):'圆桌等待着你'}</small>${esc(event?.speaker||'塔楼顾问')}</div><div class="dialogue"><div class="speaker-tag">${esc(event?.speaker||'塔楼顾问')}</div><p>${esc(event?.text||'陛下，今天的来访者都已离开。现在请前往圆桌，安排骑士处理领地的事务。')}</p>${event?btn('choices','作出决定','','dialogue-next'):btn('board','前往圆桌','','dialogue-next')}</div>${event&&choicesOpen?`<div class="choice-overlay"><div class="choice-head">${esc(event.title)} · 你的决定</div>${event.choices.map(c=>btn('choose',`${esc(c.text)}<small>${esc(valueChanges(c.effects))}${c.quest?' · 获得派遣任务':''}</small>`,`data-id="${esc(c.id)}"`,'option-button')).join('')}${btn('cancel-choices','稍后决定','','paper-button')}</div>`:''}`}
@@ -66,11 +68,11 @@ function frame(title,body,intro=''){return `<div class="overlay"><section class=
 function tower(){if(game?.phase!=='board')return frame('塔楼与骑士','<p class="modal-intro">前往圆桌后可建设、制作和交谈。</p>');let tabs=[['rooms','建设'],['craft','工坊'],['knights','骑士']].map(([id,name])=>btn('tab',name,`data-id="${id}"`,`paper-button ${towerTab===id?'active':''}`)).join('');let body='';if(towerTab==='rooms')body=`<div class="modal-grid">${Object.values(ROOMS).map(r=>`<div class="room-card"><strong>${r.name}</strong><p>${r.description}</p><p>需要：${costText(r.cost)}</p>${game.rooms[r.id]?'已建成':btn('build','建设',`data-id="${r.id}"`)}</div>`).join('')}</div>`;if(towerTab==='craft')body=`<p class="modal-intro">材料：${['iron','herbs','seal'].map(id=>`${ITEMS[id].name} ${game.inventory[id]||0}`).join(' · ')}</p><div class="modal-grid">${Object.values(ITEMS).filter(i=>i.kind==='equipment').map(i=>`<div class="item-card"><strong>${i.name} <small>拥有 ${game.inventory[i.id]||0}</small></strong><p>${i.description} · 需要${ROOMS[i.room].name}</p><p>材料：${costText(i.cost)}</p>${btn('craft','制作',`data-id="${i.id}"`)}</div>`).join('')}</div>`;if(towerTab==='knights')body=`<p class="modal-intro">空闲骑士每日可交谈一次。</p>${game.knights.filter(k=>k.available).map(k=>`<div class="relationship-row">${avatar(k.id,'avatar',1)}<div><strong>${esc(k.name)} · 信任 ${k.affinity}</strong><small>${esc(k.bio)}<br>${k.busyQuestId?'执行任务中':`装备：${k.equipment.map(x=>ITEMS[x]?.name).join('、')||'无'}`}</small></div>${btn('talk','交谈',`data-id="${k.id}" ${engine.getKnightDialogue(game,k.id)?'':'disabled'}`)}${btn('gear','装备',`data-id="${k.id}" ${k.busyQuestId?'disabled':''}`)}</div>`).join('')}`;return frame('塔楼与骑士',`<div class="modal-tabs">${tabs}</div>${body}`)}
 function knightDialogue(){const d=engine.getKnightDialogue(game,dialogueKnight);if(!d)return frame('交谈','<p class="modal-intro">这位骑士暂时无法交谈。</p>');return frame(d.title,`<div class="conversation-portrait">${avatar(d.knightId,'avatar',1)}</div><p class="modal-intro">${esc(d.text)}</p><div class="result-list">${d.choices.map(c=>btn('talk-choice',`${esc(c.text)}<small>信任 ${c.affinity>0?'+':''}${c.affinity} · ${valueChanges(c.effects)}</small>`,`data-id="${c.id}"`,'option-button')).join('')}</div>`)}
 function gear(){const k=game.knights.find(x=>x.id===selectedKnight);return frame(`${k.name}的装备`,`<p class="modal-intro">最多装备两件，不能重复。</p><div class="modal-grid">${Object.values(ITEMS).filter(i=>i.kind==='equipment'&&game.inventory[i.id]>0).map(i=>`<div class="item-card"><strong>${i.name}</strong><p>${i.description} · 拥有 ${game.inventory[i.id]}</p>${btn('equip','装备',`data-id="${i.id}"`)}</div>`).join('')||'<p>没有可装备的物品。请先到工坊制作。</p>'}</div>${btn('back-tower','返回骑士','','paper-button')}`)}
-function modals(){if(!modal)return '';if(modal==='help')return frame('如何游玩',`<div class="journal-list"><p><b>接见</b>：回应来访者，平衡各方。</p><p><b>圆桌</b>：按属性派遣骑士，留意期限。</p><p><b>塔楼</b>：建造、制作装备、交谈。</p><p><b>时光</b>：回到曾经历的日子，重新选择。</p></div>`);if(modal==='tower')return tower();if(modal==='talk')return knightDialogue();if(modal==='gear')return gear();if(modal==='time')return frame('时光回廊',`<p class="modal-intro">回到某日清晨，见闻保留。</p><div class="history-list">${game.history.slice().reverse().map(h=>`<div class="history-card"><strong>第 ${h.day} 日的清晨</strong><p>从这一天重新开始</p>${btn('rewind','回到这一天',`data-id="${h.day}"`)}</div>`).join('')}</div>`);if(modal==='journal')return frame('见闻手记',`<div class="journal-list">${game.knowledge.map(x=>`<p>${uiIcon(11)} ${esc(x)}</p>`).join('')}</div>`,`已回溯 ${game.rewinds} 次`);if(modal==='results'){const names={critical:'出色完成',success:'完成',failure:'失败',expired:'过期',in_progress:'执行中',info:'记录'};return frame(`第 ${game.day} 日 · 圆桌记录`,`<div class="result-list">${game.results.map(r=>`<div class="result-card"><strong>${esc(r.title)} · ${names[r.outcome]}</strong><p>${esc(r.text)}</p><small>${esc(valueChanges(r.delta))}</small></div>`).join('')}</div><div class="modal-actions">${btn('next-day',game.day===14?'查看章节结局':'迎接下一日','','paper-button continue-button')}</div>`)}return ''}
+function modals(){if(!modal)return '';if(modal==='map')return kingdomMap();if(modal==='help')return frame('如何游玩',`<div class="journal-list"><p><b>接见</b>：回应来访者，平衡各方。</p><p><b>圆桌</b>：按属性派遣骑士，留意期限。</p><p><b>塔楼</b>：建造、制作装备、交谈。</p><p><b>时光</b>：回到曾经历的日子，重新选择。</p></div>`);if(modal==='tower')return tower();if(modal==='talk')return knightDialogue();if(modal==='gear')return gear();if(modal==='time')return frame('时光回廊',`<p class="modal-intro">回到某日清晨，见闻保留。</p><div class="history-list">${game.history.slice().reverse().map(h=>`<div class="history-card"><strong>第 ${h.day} 日的清晨</strong><p>从这一天重新开始</p>${btn('rewind','回到这一天',`data-id="${h.day}"`)}</div>`).join('')}</div>`);if(modal==='journal')return frame('见闻手记',`<div class="journal-list">${game.knowledge.map(x=>`<p>${uiIcon(11)} ${esc(x)}</p>`).join('')}</div>`,`已回溯 ${game.rewinds} 次`);if(modal==='results'){const names={critical:'出色完成',success:'完成',failure:'失败',expired:'过期',in_progress:'执行中',info:'记录'};return frame(`第 ${game.day} 日 · 圆桌记录`,`<div class="result-list">${game.results.map(r=>`<div class="result-card"><strong>${esc(r.title)} · ${names[r.outcome]}</strong><p>${esc(r.text)}</p><small>${esc(valueChanges(r.delta))}</small></div>`).join('')}</div><div class="modal-actions">${btn('next-day',game.day===14?'查看章节结局':'迎接下一日','','paper-button continue-button')}</div>`)}return ''}
 function ending(){return `<div class="ending-view"><div class="ending-inner"><div class="home-kicker">十四日的抉择</div><h2>${esc(game.ending.title)}</h2><p>${esc(game.ending.text)}</p><div class="ornament" style="margin:auto">${uiIcon(11)}</div><p>你已抵达本章节结局。<br>回到过去，也许能看见另一种未来。</p><div class="modal-actions">${btn('time','回溯时间')}${btn('new','重新开始')}</div></div></div>`}
 function render(){app.innerHTML=`<div class="scene-bg"></div><div class="scene-tint"></div>${screen==='home'?home():`${hud()}${game.phase==='audience'?audience():game.phase==='board'||game.phase==='results'?board():''}${game.phase==='ending'?ending():''}`}${modals()}${toast?`<div class="toast" role="status">${esc(toast)}</div>`:''}`;decorateResources(app)}
 function checked(result,success){if(!result.ok){notify(result.error);return false}if(success)notify(success);else render();return true}
-app.addEventListener('click',async e=>{const b=e.target.closest('button[data-action]');if(!b||b.disabled||audienceTransition)return;const a=b.dataset.action,id=b.dataset.id;
+app.addEventListener('click',async e=>{const b=e.target.closest('button[data-action]');if(!b||b.disabled||audienceTransition||wheelActive)return;const a=b.dataset.action,id=b.dataset.id;
  if(a==='new'){clearTimeout(toastTimer);toast='';game=engine.createGame(Math.floor(Math.random()*4294967295)||1);screen='game';modal=null;choicesOpen=false;selectedKnight=null;selectedQuest=null;render();startOpening(app)}
  else if(a==='continue'&&saved){game=structuredClone(saved);screen='game';modal=game.phase==='results'?'results':null;render()}
  else if(a==='close'){modal=null;render()}
@@ -92,8 +94,18 @@ app.addEventListener('click',async e=>{const b=e.target.closest('button[data-act
  else if(a==='knight'){selectedKnight=id;render()}
  else if(a==='assign'){const q=currentQuest(),k=currentKnight();if(q&&k)checked(engine.assignKnight(game,q.id,k.id),`${k.name}已接受「${q.title}」`)}
  else if(a==='unassign'){const q=currentQuest();if(q)checked(engine.unassignKnight(game,q.id),'已撤回派遣')}
- else if(a==='resolve'){const r=engine.resolveBoard(game);if(r.ok){modal='results';render()}else notify(r.error)}
+ else if(a==='resolve'){
+  const next=structuredClone(game), r=engine.resolveBoard(next);
+  if(!r.ok){notify(r.error);return}
+  const items=r.results.filter(result=>['critical','success','failure'].includes(result.outcome)&&result.knightId).map(result=>{
+   const estimate=engine.estimateQuest(game,result.questId,result.knightId);
+   return {...result,...estimate};
+  });
+  const finish=()=>{game=next;wheelActive=false;modal='results';render()};
+  if(items.length){clearTimeout(toastTimer);toast='';render();wheelActive=true;showQuestWheels(app,items,finish)}else finish();
+ }
  else if(a==='next-day'){const r=engine.finishResults(game);if(r.ok){modal=null;selectedQuest=null;render()}else notify(r.error)}
+ else if(a==='map'){modal='map';render()}
  else if(a==='tower'){modal='tower';render()}
  else if(a==='tab'){towerTab=id;render()}
  else if(a==='build')checked(engine.buildRoom(game,id),'塔楼建设完成');
@@ -109,3 +121,8 @@ app.addEventListener('click',async e=>{const b=e.target.closest('button[data-act
 });
 render();
 initializeSave().then(result=>{if(result.state)saved=result.state;saveInfo=result.status==='found'?'发现云端存档，可继续旅程。':result.status==='empty'?'已连接云存档。':result.message||'云存档暂不可用。';if(screen==='home')render()}).catch(()=>{saveInfo='云存档暂不可用。';if(screen==='home')render()});
+
+function kingdomMap(){
+ const places=[['暮塔',50,49,'王座与圆桌所在之地'],['北坡雾林',37,28,'巡夜灯熄灭，骑士前往查探'],['林地哨所',27,38,'守望人与巡林骑士的驻地'],['旧桥',39,57,'粮车通行与护送之路'],['东岸农田',75,49,'农户、磨坊与粮食产地'],['渡口',65,71,'商队往来的水路'],['旧廷',73,28,'贵族与使者的来处'],['古印遗迹',52,20,'塔印与裂隙的秘密']];
+ return '<div class="overlay map-overlay"><section class="kingdom-map" role="dialog" aria-modal="true" aria-label="王国地图"><img src="./assets/kingdom-map.png" alt="暮塔王国地图：雾林、旧桥、东岸农田、渡口与古印遗迹环绕中央暮塔"><h2>暮塔疆域</h2><button class="paper-button map-close" data-action="close">返回</button>'+places.map(([name,x,y,detail])=>'<span class="map-place" tabindex="0" style="left:'+x+'%;top:'+y+'%"><strong>'+name+'</strong><span class="map-detail">'+detail+'</span></span>').join('')+'</section></div>';
+}

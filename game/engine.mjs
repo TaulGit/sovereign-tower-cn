@@ -131,13 +131,14 @@ function resolveCompleted(state,quest) {
   const knight = lookupKnight(state,quest.assignedKnightId);
   if (!knight) return {questId:quest.id,title:quest.title,knightId:null,knightName:'',outcome:'failure',text:'任务缺少骑士，未能完成。',delta:{}};
   const {power} = estimateQuest(state,quest.id,knight.id);
-  const grade = power - quest.difficulty + Math.floor(nextRandom(state)*6) - 2;
+  const roll = Math.floor(nextRandom(state)*6);
+  const grade = power - quest.difficulty + roll - 2;
   const outcome = grade >= 3 ? 'critical' : grade >= 0 ? 'success' : 'failure';
   const good = outcome !== 'failure';
   const delta = addResources(state,good ? quest.rewards : quest.penalties);
   knight.affinity = Math.max(0,Math.min(100,knight.affinity + (outcome === 'critical' ? 5 : good ? 3 : -3)));
   knight.busyQuestId = null; quest.remaining = 0; quest.status = good ? 'success' : 'failure';
-  return {questId:quest.id,title:quest.title,knightId:knight.id,knightName:knight.name,outcome,
+  return {questId:quest.id,title:quest.title,knightId:knight.id,knightName:knight.name,outcome,roll,
     text:outcome === 'critical' ? `${knight.name}出色地完成了任务。` : good ? `${knight.name}完成了任务。` : `${knight.name}未能完成任务，带回了经验。`,delta};
 }
 function expire(state,quest,reason) {
