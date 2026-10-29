@@ -11,20 +11,21 @@ export const OPENING_SCENES = [
   {image:'opening-door.png', text:'而大门……为他打开了。'},
   {image:'opening-crown.png', text:'从此以后，人们称他为……'},
   {image:'opening-crown.png', text:'高塔的君王。'},
-  {image:'opening-crown.png', speaker:'阿尔林', text:'早安，陛下。看到这座高塔重新焕发生机，真是不可思议……'}
+  {image:'throne-room.png', speaker:'阿尔林', text:'早安，陛下。看到这座高塔重新焕发生机，真是不可思议……'}
 ];
 
 /** Mount a self-contained, skippable prologue over the current game view. */
 export function startOpening(container,onFinish=()=>{}) {
-  let index=0, currentImage='', transitionToken=0, ended=false;
+  let index=0, currentImage='', transitionToken=0, ended=false, historyOpen=false;
   const layer=document.createElement('section');
   layer.className='opening';
   layer.setAttribute('role','dialog');
   layer.setAttribute('aria-label','故事序章');
   layer.setAttribute('aria-modal','true');
-  layer.innerHTML=`<div class="opening-scenes" aria-hidden="true"></div><div class="opening-shade"></div><button type="button" class="opening-skip">跳过</button><div class="opening-dialogue"><div class="opening-speaker"></div><p class="opening-text" aria-live="polite"></p><button type="button" class="opening-next" aria-label="下一句">继续 <span>◆</span></button></div>`;
+  layer.innerHTML=`<div class="opening-scenes" aria-hidden="true"></div><div class="opening-shade"></div><div class="opening-arlin" hidden aria-hidden="true"></div><button type="button" class="opening-skip">跳过</button><button type="button" class="opening-history-toggle" aria-expanded="false" aria-controls="opening-history">文字记录</button><div class="opening-dialogue"><div class="opening-speaker"></div><p class="opening-text" aria-live="polite"></p><button type="button" class="opening-next" aria-label="下一句">继续 <span class="opening-next-icon" aria-hidden="true"></span></button></div><section id="opening-history" class="opening-history" role="dialog" aria-label="序章文字记录" hidden><div class="opening-history-header"><strong>文字记录</strong><button type="button" class="opening-history-close">关闭</button></div><div class="opening-history-list"></div></section>`;
   container.append(layer);
   const scenes=layer.querySelector('.opening-scenes'), text=layer.querySelector('.opening-text'), speaker=layer.querySelector('.opening-speaker'), next=layer.querySelector('.opening-next');
+  const history=layer.querySelector('.opening-history'), historyList=layer.querySelector('.opening-history-list'), historyToggle=layer.querySelector('.opening-history-toggle');
   for (const image of new Set(OPENING_SCENES.map(s=>s.image))) { const preload=new Image(); preload.src=`./assets/${image}`; }
   function show() {
     const scene=OPENING_SCENES[index];
@@ -38,16 +39,45 @@ export function startOpening(container,onFinish=()=>{}) {
       // Keep the prior background beneath the incoming image while it fades in.
       setTimeout(()=>{if(token===transitionToken && !ended) [...scenes.children].slice(0,-1).forEach(node=>node.remove())},900);
     }
+    layer.querySelector('.opening-arlin').hidden=scene.speaker!=='阿尔林';
     speaker.textContent=scene.speaker||'旁白';
     text.textContent=scene.text;
-    next.innerHTML=index===OPENING_SCENES.length-1?'进入高塔 <span>◆</span>':'继续 <span>◆</span>';
+    next.innerHTML=index===OPENING_SCENES.length-1?'进入高塔 <span class="opening-next-icon" aria-hidden="true"></span>':'继续 <span class="opening-next-icon" aria-hidden="true"></span>';
   }
-  function finish() { if(ended)return; ended=true; layer.classList.add('opening-leaving'); setTimeout(()=>{layer.remove(); onFinish()},450); }
+  function toggleHistory(open) {
+    historyOpen=open;
+    history.hidden=!open;
+    historyToggle.setAttribute('aria-expanded',String(open));
+    if(open){
+      historyList.replaceChildren();
+      for(const scene of OPENING_SCENES.slice(0,index+1)){
+        const entry=document.createElement('p'), name=document.createElement('strong');
+        name.textContent=scene.speaker||'旁白';
+        entry.append(name,document.createTextNode(`：${scene.text}`));
+        historyList.append(entry);
+      }
+      historyList.scrollTop=historyList.scrollHeight;
+      layer.querySelector('.opening-history-close').focus({preventScroll:true});
+    } else historyToggle.focus({preventScroll:true});
+  }
+  function finish() { if(ended)return; ended=true; document.removeEventListener('keydown',onKeydown); layer.classList.add('opening-leaving'); setTimeout(()=>{layer.remove(); onFinish()},450); }
+  function advance(){if(ended||historyOpen)return; if(index===OPENING_SCENES.length-1)finish();else {index++;show()}}
   layer.addEventListener('click',event=>{
     event.stopPropagation();
     if(event.target.closest('.opening-skip')) return finish();
-    if(event.target.closest('.opening-next')) { if(index===OPENING_SCENES.length-1) finish(); else {index++;show()} }
+    if(event.target.closest('.opening-history-toggle')) return toggleHistory(!historyOpen);
+    if(event.target.closest('.opening-history-close')) return toggleHistory(false);
+    if(event.target.closest('.opening-dialogue')) advance();
   });
-  layer.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();finish()}});
+  function onKeydown(event){
+    if(ended)return;
+    if(event.key==='Escape'){event.preventDefault(); if(historyOpen)toggleHistory(false);else finish(); return}
+    if(event.key===' '&&!event.repeat&&!historyOpen){
+      const focused=event.target.closest?.('button');
+      if(focused&&focused!==next)return;
+      event.preventDefault(); advance();
+    }
+  }
+  document.addEventListener('keydown',onKeydown);
   show();next.focus({preventScroll:true});
 }

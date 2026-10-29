@@ -3,3 +3,65 @@
 /* 顶部信息可聚焦，触屏玩家也可点按查看。 */
 .hud{height:9%;z-index:10}.hud-left{height:82%;padding:0 .8%}.hud-day{font-size:clamp(12px,1.25vw,21px)}.resource-group{gap:.35em;margin:0 .5em}.resource{position:relative;font-size:clamp(11px,1.05vw,17px);gap:.25em;outline:none}.resource-symbol{width:1.7em;height:1.7em}.hud-right{gap:.5em;padding:.3em .6em}.icon-button{width:clamp(35px,3.8vw,56px);height:clamp(35px,3.8vw,56px);font-size:clamp(16px,1.6vw,23px)}.goal{top:9%}.resource-tip{display:none;position:absolute;top:calc(100% + .65em);left:50%;transform:translateX(-50%);width:11em;white-space:normal;padding:.65em .8em;background:#f0dfca;color:#4b3740;border:2px solid #826970;box-shadow:0 3px 8px #291d2780;font-family:system-ui,sans-serif;font-weight:400;line-height:1.45;z-index:15;pointer-events:none}.resource-tip strong,.resource-tip small{display:block}.resource-tip strong{font-size:1em;margin-bottom:.25em}.resource-tip small{font-size:.82em}.resource:hover .resource-tip,.resource:focus .resource-tip,.resource:focus-within .resource-tip{display:block}.resource:focus-visible{outline:2px solid #f7d7a1;outline-offset:2px}
 @media(max-width:700px) and (orientation:portrait){.hud{height:11%;}.hud-left{height:50%}.hud-day{font-size:13px}.resource{font-size:11px}.resource-symbol{width:1.5em;height:1.5em}.hud-right{padding:.15em .5em}.icon-button{width:38px;height:38px;font-size:17px}.goal{top:11%}.resource-tip{width:9em}.view-screen{inset:13% 0 0}}
+/* 每个角色使用独立格位，第二行用于接见与交谈。 */
+.character,.avatar{background-repeat:no-repeat}
+.attribute-list{display:grid;gap:.42em;margin:1em auto;width:90%;text-align:left}
+.attribute-row{display:grid;grid-template-columns:2.4em 1fr 1.3em;align-items:center;gap:.4em;font-size:clamp(10px,.85vw,14px)}
+.attribute-row b{text-align:right;color:#7a4c55}
+.attribute-track{height:.65em;background:#b79891;border:1px solid #92736f;box-shadow:inset 0 1px 2px #76585b55}
+.attribute-track span{display:block;height:100%;background:#a25762}
+.conversation-portrait{width:clamp(72px,9vw,120px);aspect-ratio:1;float:left;margin:.25em 1em .7em 0;border:2px solid #a58783;background:#d9c3b7;overflow:hidden}
+.conversation-portrait .avatar{width:100%;height:100%}
+@media(max-width:700px) and (orientation:portrait){.attribute-list{gap:.25em;margin:.45em auto}.attribute-row{font-size:10px}.attribute-track{height:.55em}}
+/* 自制羊皮纸纹理为可交互面板提供一致的材质。 */
+.dialogue,.modal,.quest-panel,.stats-panel,.ending-inner{background-image:linear-gradient(#f0ded2a8,#dcc3b5a8),url('./assets/ui-kit.png');background-position:center;background-size:cover}
+.room-card,.item-card,.result-card,.history-card,.quest-card,.ribbon-button,.paper-button,.option-button,.hud-left,.resource-tip{background-image:linear-gradient(#f3dfd3aa,#e6cbbdaa),url('./assets/ui-kit.png');background-position:center;background-size:cover}
+.quest-card.selected{background-image:linear-gradient(#fff2dc99,#f0d7c499),url('./assets/ui-kit.png')}
+.continue-button{background-image:linear-gradient(#ab5e63d9,#8f4e56e6),url('./assets/ui-kit.png')}
+.modal-tabs button.active{background-image:linear-gradient(#80576adf,#80576adf),url('./assets/ui-kit.png')}
+/* 圆桌任务需要的属性在雷达图上突出，名称留在底栏上方。 */
+.board-controls{bottom:11%;}
+.knight-name{font-size:clamp(13px,1.08vw,18px);font-weight:700;line-height:1.25}
+.stats-panel{overflow:auto}
+.stats-panel h3{font-size:clamp(14px,1.25vw,21px)}
+.stats-panel small{font-size:clamp(12px,.88vw,15px)}
+.radar{display:block;width:min(94%,20vw);height:auto;max-height:52%;margin:.35em auto;overflow:visible}
+.radar-grid{fill:none;stroke:#977b7d;stroke-width:1}
+.radar-axis{stroke:#a58d89;stroke-width:1}
+.radar-shape{fill:#a8515c88;stroke:#a14e5b;stroke-width:2}
+.radar text{fill:#604c50;font-size:10px;font-weight:600}
+.radar text.radar-required{fill:#a52744;font-size:11px;font-weight:900;paint-order:stroke;stroke:#f6dfcd;stroke-width:1.5px;stroke-linejoin:round}
+.panel-title{font-size:clamp(14px,1.2vw,20px)}
+.panel-sub{font-size:clamp(12px,.9vw,15px)}
+.quest-card strong{font-size:clamp(13px,1.05vw,18px)}
+.quest-card small{font-size:clamp(11px,.85vw,14px)}
+.equip-list,.chance{font-size:clamp(12px,.95vw,16px)}
+@media(max-width:700px) and (orientation:portrait){
+ .board-controls{bottom:12%}
+ .knight-name{font-size:14px}
+ .stats-panel{height:53%}
+ .radar{width:min(100%,175px);max-height:54%;margin:.1em auto}
+ .radar text{font-size:10px}
+ .quest-card strong{font-size:13px}
+ .quest-card small{font-size:11px}
+}
+.ui-icon{display:inline-block;width:1.7em;height:1.7em;flex:none;vertical-align:middle;background-image:url('./assets/ui-icons.png');background-size:400% 300%;background-repeat:no-repeat}
+.resource-symbol,.resource.gold .resource-symbol{border:0;background:transparent;width:1.7em;height:1.7em}
+.resource-symbol .ui-icon{width:100%;height:100%}
+.icon-button{padding:0;overflow:hidden;background:transparent;border:0;box-shadow:none}
+.icon-button .ui-icon{width:100%;height:100%}
+.ornament .ui-icon{width:2em;height:2em}
+.dialogue::before,.dialogue::after{content:"";background:#555376 url('./assets/ui-icons.png') 100% 100%/400% 300% no-repeat}
+.option-button::before{content:"";display:inline-block;width:1.4em;height:1.4em;vertical-align:middle;background:url('./assets/ui-icons.png') 100% 100%/400% 300% no-repeat}
+.modal-close{font-size:clamp(12px,.85vw,15px)}
+/* Resource symbols carry a distinct color and stay aligned with their values. */
+.resource-group{align-items:center;gap:.45em}
+.resource{align-items:center;gap:.25em}
+.resource-symbol{display:grid;place-items:center;flex:none;width:2em;height:2em;border-radius:50%;border:1px solid #81686a;background:#e3ceb8}
+.resource-symbol .ui-icon{width:1.8em;height:1.8em}
+.resource-people{background:#cbe0c3;border-color:#7b9c77}.resource-nobles{background:#e3cee3;border-color:#98729c}.resource-merchants{background:#efceb5;border-color:#ad8060}.resource-scholars{background:#cbdce9;border-color:#708fa9}.resource-mystics{background:#d9d1ef;border-color:#8775ac}.resource-treasury{background:#f2dfa0;border-color:#b38a45}
+.inline-resource-icon{display:inline-block;width:1.35em;height:1.35em;vertical-align:-.3em;margin-right:.15em;background-image:url('./assets/ui-icons.png');background-size:400% 300%;background-repeat:no-repeat}
+.resource-icon-people{background-position:0% 0%}.resource-icon-nobles{background-position:33.3333% 0%}.resource-icon-merchants{background-position:66.6667% 0%}.resource-icon-scholars{background-position:100% 0%}.resource-icon-mystics{background-position:0% 50%}.resource-icon-treasury{background-position:33.3333% 50%}
+@media(max-width:700px) and (orientation:portrait){.resource-group{gap:.18em;margin:0 .2em}.resource-symbol{width:1.75em;height:1.75em}.resource-symbol .ui-icon{width:1.6em;height:1.6em}}
+.inline-resource-icon.resource-icon-iron,.inline-resource-icon.resource-icon-herbs,.inline-resource-icon.resource-icon-seal{background-image:url('./assets/material-icons.png');background-size:300% 100%}
+.resource-icon-iron{background-position:0% 50%}.resource-icon-herbs{background-position:50% 50%}.resource-icon-seal{background-position:100% 50%}
