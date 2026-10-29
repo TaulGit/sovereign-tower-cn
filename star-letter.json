@@ -1,0 +1,36 @@
+{
+  "gameId": 0,
+  "title": "暮塔之主",
+  "tags": [
+    "模拟",
+    "奇幻",
+    "策略"
+  ],
+  "gameCategory": [
+    10001,
+    10004
+  ],
+  "summary": "在暮色中的塔楼接见来客、派遣骑士，并在十四日的抉择中守护王国。",
+  "cover": "./game/assets/throne-room.png",
+  "gameFile": "./game",
+  "gameType": 0,
+  "screen": 0,
+  "priceType": 0,
+  "capabilityDeclaration": {
+    "schemaVersion": 1,
+    "capabilities": {
+      "storage": {
+        "enabled": true
+      },
+      "oss": {
+        "enabled": false
+      },
+      "ai": {
+        "enabled": false
+      },
+      "exchange": {
+        "enabled": false
+      }
+    }
+  }
+}
