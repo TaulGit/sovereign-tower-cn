@@ -11,7 +11,7 @@ export const OPENING_SCENES = [
   {image:'opening-door.png', text:'而大门……为他打开了。'},
   {image:'opening-crown.png', text:'从此以后，人们称他为……'},
   {image:'opening-crown.png', text:'高塔的君王。'},
-  {image:'throne-room.png', speaker:'阿尔林', text:'早安，陛下。看到这座高塔重新焕发生机，真是不可思议……'}
+  {image:'throne-room.png', speaker:'塔楼顾问 · 阿尔林', text:'早安，陛下。看到这座高塔重新焕发生机，真是不可思议……'}
 ];
 
 /** Mount a self-contained, skippable prologue over the current game view. */
@@ -39,7 +39,7 @@ export function startOpening(container,onFinish=()=>{}) {
       // Keep the prior background beneath the incoming image while it fades in.
       setTimeout(()=>{if(token===transitionToken && !ended) [...scenes.children].slice(0,-1).forEach(node=>node.remove())},900);
     }
-    layer.querySelector('.opening-arlin').hidden=scene.speaker!=='阿尔林';
+    layer.querySelector('.opening-arlin').hidden=scene.speaker!=='塔楼顾问 · 阿尔林';
     speaker.textContent=scene.speaker||'旁白';
     text.textContent=scene.text;
     next.innerHTML=index===OPENING_SCENES.length-1?'进入高塔 <span class="opening-next-icon" aria-hidden="true"></span>':'继续 <span class="opening-next-icon" aria-hidden="true"></span>';
